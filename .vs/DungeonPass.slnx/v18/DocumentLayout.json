@@ -1,0 +1,71 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\diehu\\source\\repos\\DungeonPass\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{208AB2A1-00D0-4576-8CC3-F7700EE5DF89}|DungeonPass.Server\\DungeonPass.Server.csproj|c:\\users\\diehu\\source\\repos\\dungeonpass\\dungeonpass.server\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{208AB2A1-00D0-4576-8CC3-F7700EE5DF89}|DungeonPass.Server\\DungeonPass.Server.csproj|solutionrelative:dungeonpass.server\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3C23F576-469E-40FD-692F-AF2022EE923A}|dungeonpass.client\\dungeonpass.client.esproj|c:\\users\\diehu\\source\\repos\\dungeonpass\\dungeonpass.client\\src\\app.jsx||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
+      "RelativeMoniker": "D:0:0:{3C23F576-469E-40FD-692F-AF2022EE923A}|dungeonpass.client\\dungeonpass.client.esproj|solutionrelative:dungeonpass.client\\src\\app.jsx||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3C23F576-469E-40FD-692F-AF2022EE923A}|dungeonpass.client\\dungeonpass.client.esproj|c:\\users\\diehu\\source\\repos\\dungeonpass\\dungeonpass.client\\src\\app.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}",
+      "RelativeMoniker": "D:0:0:{3C23F576-469E-40FD-692F-AF2022EE923A}|dungeonpass.client\\dungeonpass.client.esproj|solutionrelative:dungeonpass.client\\src\\app.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "Program.cs",
+              "DocumentMoniker": "C:\\Users\\diehu\\source\\repos\\DungeonPass\\DungeonPass.Server\\Program.cs",
+              "RelativeDocumentMoniker": "DungeonPass.Server\\Program.cs",
+              "ToolTip": "C:\\Users\\diehu\\source\\repos\\DungeonPass\\DungeonPass.Server\\Program.cs",
+              "RelativeToolTip": "DungeonPass.Server\\Program.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA4AAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-09T08:15:36.559Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "App.jsx",
+              "DocumentMoniker": "C:\\Users\\diehu\\source\\repos\\DungeonPass\\dungeonpass.client\\src\\App.jsx",
+              "RelativeDocumentMoniker": "dungeonpass.client\\src\\App.jsx",
+              "ToolTip": "C:\\Users\\diehu\\source\\repos\\DungeonPass\\dungeonpass.client\\src\\App.jsx",
+              "RelativeToolTip": "dungeonpass.client\\src\\App.jsx",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAMAAAACAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003663|",
+              "WhenOpened": "2026-05-09T08:14:57.225Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "App.css",
+              "DocumentMoniker": "C:\\Users\\diehu\\source\\repos\\DungeonPass\\dungeonpass.client\\src\\App.css",
+              "RelativeDocumentMoniker": "dungeonpass.client\\src\\App.css",
+              "ToolTip": "C:\\Users\\diehu\\source\\repos\\DungeonPass\\dungeonpass.client\\src\\App.css",
+              "RelativeToolTip": "dungeonpass.client\\src\\App.css",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003000|",
+              "WhenOpened": "2026-05-09T08:14:56.114Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
