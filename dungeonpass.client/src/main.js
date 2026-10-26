@@ -10,12 +10,23 @@ const generatorOptions = {
 
 const apiBaseUrl = window.location.protocol === 'file:' ? 'http://localhost:3001' : '';
 
-let isAuthenticated = false;
+const SESSION_KEY = 'dungeonpass.session';
+let savedSession = null;
+try {
+  savedSession = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
+} catch {
+  localStorage.removeItem(SESSION_KEY);
+}
+
+let isAuthenticated = Boolean(savedSession?.token && savedSession?.user);
 let activeView = 'vault';
 let generatedPassword = '';
 let editingRecordIndex = null;
-let currentUser = null;
+let currentUser = savedSession?.user || null;
+let authToken = savedSession?.token || null;
+let isRegistering = false;
 let vaultMessage = '';
+let searchQuery = '';
 const revealedPasswords = new Set();
 
 function icon(name) {
@@ -37,6 +48,7 @@ function icon(name) {
     check: '<path d="M20 6 9 17l-5-5"/>',
     x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
     plus: '<path d="M12 5v14"/><path d="M5 12h14"/>',
+    trash: '<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="m19 6-1 14H6L5 6"/><path d="M10 11v5M14 11v5"/>',
   };
 
   return `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">${icons[name]}</svg>`;
@@ -79,10 +91,10 @@ async function copyText(text) {
 
 async function requestJson(url, options = {}) {
   const response = await fetch(`${apiBaseUrl}${url}`, {
-    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+    headers: { 'Content-Type': 'application/json', ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}), ...(options.headers || {}) },
     ...options,
   });
-  const data = await response.json();
+  const data = response.status === 204 ? null : await response.json();
 
   if (!response.ok) {
     throw new Error(data.error || 'Ошибка запроса.');
@@ -94,7 +106,7 @@ async function requestJson(url, options = {}) {
 async function loadVaultRecords() {
   if (!currentUser) return;
 
-  const data = await requestJson(`/api/users/${currentUser.user_id}/records`);
+  const data = await requestJson('/api/records');
   credentials.splice(0, credentials.length, ...data.records);
   revealedPasswords.clear();
   editingRecordIndex = null;
@@ -160,7 +172,7 @@ function renderLogin() {
         <div class="auth-heading">
           <div>
             <p class="eyebrow">Авторизация</p>
-            <h2 id="login-title">Добро пожаловать</h2>
+            <h2 id="login-title">${isRegistering ? 'Создать аккаунт' : 'Добро пожаловать'}</h2>
           </div>
           <span class="auth-badge">${icon('shield')} Local vault</span>
         </div>
@@ -181,7 +193,8 @@ function renderLogin() {
             <button type="button" class="link-button">Забыли пароль?</button>
           </div>
 
-          <button class="primary-button" type="submit">${icon('login')} Войти</button>
+          <button class="primary-button" type="submit">${icon('login')} ${isRegistering ? 'Зарегистрироваться' : 'Войти'}</button>
+          <button type="button" class="link-button" id="toggle-auth-mode">${isRegistering ? 'Уже есть аккаунт? Войти' : 'Создать аккаунт'}</button>
           <p id="form-note" class="form-note" role="status"></p>
         </form>
       </section>
@@ -191,6 +204,11 @@ function renderLogin() {
   document.getElementById('toggle-password').addEventListener('click', () => {
     const password = document.getElementById('password');
     password.type = password.type === 'password' ? 'text' : 'password';
+  });
+
+  document.getElementById('toggle-auth-mode').addEventListener('click', () => {
+    isRegistering = !isRegistering;
+    renderLogin();
   });
 
   document.getElementById('login-form').addEventListener('submit', async (event) => {
@@ -205,7 +223,7 @@ function renderLogin() {
     submitButton.disabled = true;
 
     try {
-      const response = await fetch(`${apiBaseUrl}/api/auth/login`, {
+      const response = await fetch(`${apiBaseUrl}/api/auth/${isRegistering ? 'register' : 'login'}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -217,9 +235,11 @@ function renderLogin() {
       }
 
       currentUser = data.user;
+      authToken = data.token;
+      localStorage.setItem(SESSION_KEY, JSON.stringify({ user: currentUser, token: authToken }));
       isAuthenticated = true;
       activeView = 'vault';
-      note.textContent = data.created ? 'Пользователь создан. Открываю хранилище...' : 'Вход выполнен. Открываю хранилище...';
+      note.textContent = isRegistering ? 'Аккаунт создан. Открываю хранилище...' : 'Вход выполнен. Открываю хранилище...';
       await loadVaultRecords();
       renderApp();
     } catch (error) {
@@ -243,29 +263,92 @@ function renderApp() {
           <p>ОСНОВНОЕ</p>
           <button class="nav-link ${activeView === 'vault' ? 'active' : ''}" type="button" data-view="vault">${icon('storage')} Хранилище</button>
           <button class="nav-link ${activeView === 'generator' ? 'active' : ''}" type="button" data-view="generator">${icon('bolt')} Генератор</button>
+          <button class="nav-link ${activeView === 'settings' ? 'active' : ''}" type="button" data-view="settings">${icon('settings')} Аккаунт</button>
         </nav>
         <span class="version">v0.1</span>
       </aside>
 
       <div class="workspace">
         <header class="topbar">
-          <input type="search" placeholder="Поиск паролей... (Under construction)" />
-          <button class="profile-button" type="button" aria-label="Профиль">${icon('user')}</button>
+          <input id="vault-search" type="search" value="${escapeHtml(searchQuery)}" placeholder="Поиск по сервису или логину" aria-label="Поиск записей" />
+          <button class="logout-button" type="button" id="logout-button">Выйти</button>
         </header>
 
         <main class="content">
-          ${activeView === 'generator' ? renderGeneratorContent() : renderVaultContent()}
+          ${activeView === 'generator' ? renderGeneratorContent() : activeView === 'settings' ? renderSettingsContent() : renderVaultContent()}
         </main>
       </div>
     </div>
   `;
 
   bindNavigation();
+  document.getElementById('logout-button').addEventListener('click', () => {
+    localStorage.removeItem(SESSION_KEY);
+    authToken = null;
+    currentUser = null;
+    isAuthenticated = false;
+    credentials.length = 0;
+    revealedPasswords.clear();
+    renderLogin();
+  });
+  document.getElementById('vault-search').addEventListener('input', (event) => {
+    searchQuery = event.currentTarget.value;
+    const query = searchQuery.trim().toLocaleLowerCase();
+    document.querySelectorAll('.vault-item').forEach((item) => {
+      item.hidden = !item.dataset.search.includes(query);
+    });
+  });
   if (activeView === 'generator') {
     bindGeneratorActions();
+  } else if (activeView === 'settings') {
+    bindSettingsActions();
   } else {
     bindVaultActions();
   }
+}
+
+function renderSettingsContent() {
+  return `
+    <div class="content-title"><h1>Настройки аккаунта</h1></div>
+    <p class="account-email">Выполнен вход: ${escapeHtml(currentUser?.email || '')}</p>
+    <section class="settings-panel">
+      <h2>Сменить пароль</h2>
+      <p>Новый пароль должен содержать не менее 12 символов.</p>
+      <form id="change-password-form" class="add-record-form settings-password-form">
+        <label><span>Текущий пароль</span><input name="current_password" type="password" autocomplete="current-password" required /></label>
+        <label><span>Новый пароль</span><input name="new_password" type="password" autocomplete="new-password" minlength="12" required /></label>
+        <label><span>Повторите новый пароль</span><input name="confirm_password" type="password" autocomplete="new-password" minlength="12" required /></label>
+        <button class="add-record-button" type="submit">Сохранить пароль</button>
+      </form>
+      <p class="vault-message" id="password-message" role="status">${escapeHtml(vaultMessage)}</p>
+    </section>
+  `;
+}
+
+function bindSettingsActions() {
+  const form = document.getElementById('change-password-form');
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const formData = new FormData(form);
+    const currentPassword = String(formData.get('current_password'));
+    const newPassword = String(formData.get('new_password'));
+    const confirmPassword = String(formData.get('confirm_password'));
+    const message = document.getElementById('password-message');
+    if (newPassword !== confirmPassword) {
+      message.textContent = 'Новые пароли не совпадают.';
+      return;
+    }
+    try {
+      const result = await requestJson('/api/account/password', {
+        method: 'PUT',
+        body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+      });
+      form.reset();
+      message.textContent = result.message;
+    } catch (error) {
+      message.textContent = error.message;
+    }
+  });
 }
 
 function renderVaultContent() {
@@ -300,7 +383,7 @@ function renderVaultItem(item, index) {
 
   if (isEditing) {
     return `
-      <article class="vault-item vault-item-editing" data-record-index="${index}">
+      <article class="vault-item vault-item-editing" data-record-index="${index}" data-search="${escapeHtml(`${item.service_name} ${item.login}`.toLocaleLowerCase())}">
         <div class="item-icon">${icon('key')}</div>
         <form class="record-edit-form">
           <label class="record-edit-field">
@@ -325,7 +408,7 @@ function renderVaultItem(item, index) {
   }
 
   return `
-    <article class="vault-item" data-record-index="${index}">
+    <article class="vault-item" data-record-index="${index}" data-search="${escapeHtml(`${item.service_name} ${item.login}`.toLocaleLowerCase())}">
       <div class="item-icon">${icon('key')}</div>
       <div>
         <h2>${escapeHtml(item.service_name)}</h2>
@@ -336,6 +419,7 @@ function renderVaultItem(item, index) {
         <button class="icon-button edit-record" type="button" aria-label="Редактировать" title="Редактировать">${icon('edit')}</button>
         <button class="icon-button copy-password" type="button" aria-label="Копировать пароль" title="Копировать пароль">${icon('copy')}</button>
         <button class="icon-button toggle-record-password" type="button" aria-label="Показать пароль" title="Показать пароль">${icon(revealedPasswords.has(index) ? 'eyeOff' : 'eye')}</button>
+        <button class="icon-button delete-record" type="button" aria-label="Удалить запись" title="Удалить запись">${icon('trash')}</button>
       </div>
     </article>
   `;
@@ -407,6 +491,10 @@ function bindVaultActions() {
     });
   });
 
+  document.querySelectorAll('.delete-record').forEach((button) => {
+    button.addEventListener('click', () => deleteRecord(Number(button.closest('.vault-item').dataset.recordIndex)));
+  });
+
   document.querySelectorAll('.cancel-record-edit').forEach((button) => {
     button.addEventListener('click', () => {
       editingRecordIndex = null;
@@ -456,6 +544,23 @@ function bindVaultActions() {
   });
 }
 
+async function deleteRecord(index) {
+  const record = credentials[index];
+  if (!record || !window.confirm(`Удалить запись «${record.service_name}»?`)) return;
+
+  try {
+    await requestJson(`/api/records/${record.record_id}`, { method: 'DELETE' });
+    credentials.splice(index, 1);
+    revealedPasswords.clear();
+    editingRecordIndex = null;
+    vaultMessage = 'Запись удалена.';
+    renderApp();
+  } catch (error) {
+    vaultMessage = error.message;
+    renderApp();
+  }
+}
+
 async function addRecord(event) {
   event.preventDefault();
   const form = event.currentTarget;
@@ -474,7 +579,7 @@ async function addRecord(event) {
   }
 
   try {
-    const data = await requestJson(`/api/users/${currentUser.user_id}/records`, {
+    const data = await requestJson('/api/records', {
       method: 'POST',
       body: JSON.stringify(payload),
     });
@@ -502,7 +607,7 @@ async function saveEditedRecord(item) {
   }
 
   try {
-    const data = await requestJson(`/api/users/${currentUser.user_id}/records/${credentials[index].record_id}`, {
+    const data = await requestJson(`/api/records/${credentials[index].record_id}`, {
       method: 'PUT',
       body: JSON.stringify({
         service_name: serviceName,
@@ -581,7 +686,15 @@ function flashButton(button, activeTitle, defaultTitle) {
 }
 
 if (isAuthenticated) {
-  renderApp();
+  loadVaultRecords()
+    .then(() => renderApp())
+    .catch(() => {
+      localStorage.removeItem(SESSION_KEY);
+      authToken = null;
+      currentUser = null;
+      isAuthenticated = false;
+      renderLogin();
+    });
 } else {
   renderLogin();
 }
